@@ -1,182 +1,157 @@
-# FastAPI Template
+# Шаблон FastAPI
 
-FastAPI asosidagi backend shabloni. Loyihada PostgreSQL, SQLAlchemy, Alembic
-migratsiyalari, Redis, Celery hamda JWT orqali autentifikatsiya bor.
+Шаблон backend-приложения на FastAPI. В проект включены PostgreSQL, SQLAlchemy,
+миграции Alembic, Redis, Celery и JWT-аутентификация.
 
-## Talablar
+## Требования
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (local ishga tushirish uchun)
-- Docker va Docker Compose (konteynerda ishga tushirish uchun)
+- [uv](https://docs.astral.sh/uv/) для локального запуска
+- Docker и Docker Compose для запуска в контейнерах
 
-## Sozlash
+## Настройка
 
-Avval muhit sozlamalarini nusxalang:
+Сначала скопируйте файл настроек среды:
 
 ```bash
 cp .env.example .env
 ```
 
-`SECRET_KEY` qiymatini albatta o'zgartiring.
+Обязательно измените значение `SECRET_KEY`.
 
-`DATABASE_URL` ishlatish usuliga qarab quyidagicha bo'lishi kerak:
+Значение `DATABASE_URL` зависит от способа запуска:
 
-| Ishga tushirish usuli | `DATABASE_URL` |
+| Способ запуска | `DATABASE_URL` |
 | --- | --- |
-| Local Python | `postgresql+asyncpg://fastapi:fastapi@localhost:5432/fastapi` |
+| Локальный Python | `postgresql+asyncpg://fastapi:fastapi@localhost:5432/fastapi` |
 | Docker Compose | `postgresql+asyncpg://fastapi:fastapi@db:5432/fastapi` |
 
-> Docker ichida `localhost` API konteynerining o'zini anglatadi. Shu sababli
-> PostgreSQL uchun Docker servis nomi — `db` — ishlatiladi.
+> В Docker `localhost` указывает на сам контейнер API. Поэтому для PostgreSQL
+> используется имя Docker-сервиса `db`.
 
-## Docker orqali ishga tushirish
+## Запуск через Docker
 
-`.env` ichidagi `DATABASE_URL`da host sifatida `db` ko'rsatilganini tekshiring,
-so'ng barcha servislarni ishga tushiring:
+Убедитесь, что в `.env` хостом в `DATABASE_URL` указан `db`, затем запустите
+все сервисы:
 
 ```bash
 docker compose up --build -d
 ```
 
-Bu buyruq quyidagi servislarni ishga tushiradi: `api`, `db` (PostgreSQL),
-`redis`, `celery-worker` va `celery-beat`.
+Будут запущены сервисы `api`, `db` (PostgreSQL), `redis`, `celery-worker` и
+`celery-beat`.
 
-Holat va loglarni tekshirish:
+Проверка статуса и логов:
 
 ```bash
 docker compose ps
 docker compose logs -f api
 ```
 
-API odatda `http://127.0.0.1:8000` manzilida bo'ladi. Quyidagi sahifalar
-foydali:
+API по умолчанию доступен по адресу `http://127.0.0.1:8000`.
 
-- Health check: `GET /health`
+- Проверка состояния: `GET /health`
 - Swagger UI: `http://127.0.0.1:8000/docs`
-- API prefiksi: `/api/v1`
 
-To'xtatish:
+Остановка:
 
 ```bash
 docker compose down
 ```
 
-Ma'lumotlar bazasi saqlanadi. Uni ham o'chirish kerak bo'lsa:
+База данных будет сохранена. Чтобы удалить и её:
 
 ```bash
 docker compose down -v
 ```
 
-## Local ishga tushirish
+## Локальный запуск
 
-Avval PostgreSQL va Redis ishga tushgan bo'lishi kerak. `.env`da PostgreSQL
-hosti `localhost`, Redis URL'lari esa local Redis manziliga mos bo'lishi kerak.
+Сначала запустите PostgreSQL и Redis. В `.env` хост PostgreSQL должен быть
+`localhost`, а URL Redis — соответствовать локальному Redis.
 
-Bog'liqliklarni o'rnating:
+Установите зависимости:
 
 ```bash
 uv sync
 ```
 
-API'ni development rejimida ishga tushiring:
+Запустите API в режиме разработки:
 
 ```bash
 uv run uvicorn app.main:app --reload
 ```
 
-Yoki Invoke yordamida:
+Или через Invoke:
 
 ```bash
 uv run inv run
 ```
 
-Celery worker va scheduler kerak bo'lsa, alohida terminallarda ishga tushiring:
+При необходимости запустите worker и планировщик Celery в отдельных терминалах:
 
 ```bash
 uv run inv worker
 uv run inv beat
 ```
 
-## Ma'lumotlar bazasi migratsiyalari
+## Миграции базы данных
 
-Alembic migratsiya fayllari `app/models/migrations/versions/` ichida saqlanadi.
+Файлы миграций Alembic хранятся в `app/models/migrations/versions/`.
 
-### Birinchi yoki yangi migratsiyani yaratish
+### Создание первой или новой миграции
 
-Model o'zgargandan keyin migration yarating:
+После изменения модели создайте миграцию:
 
 ```bash
 uv run alembic revision --autogenerate -m "create users table"
 ```
 
-Yaratilgan faylni ko'rib chiqing, so'ng uni bazaga qo'llang:
+Проверьте созданный файл, затем примените миграцию:
 
 ```bash
 uv run alembic upgrade head
 ```
 
-Docker ishlatayotganda shu buyruqlarni API konteyneri ichida bajaring:
+При использовании Docker выполните эти команды внутри контейнера API:
 
 ```bash
 docker compose exec api alembic revision --autogenerate -m "create users table"
 docker compose exec api alembic upgrade head
 ```
 
-> `docker compose up` migratsiyalarni avtomatik qo'llamaydi; ularni yuqoridagi
-> `alembic upgrade head` buyrug'i bilan alohida qo'llang.
+> `docker compose up` не применяет миграции автоматически. Выполните
+> `alembic upgrade head` отдельно.
 
-### Foydali Alembic buyruqlari
+### Полезные команды Alembic
 
 ```bash
-# Hozirgi migration versiyasi
+# Текущая версия миграции
 uv run alembic current
 
-# Mavjud migrationlar tarixi
+# История миграций
 uv run alembic history
 
-# Bitta oldingi versiyaga qaytish
+# Откат на одну версию
 uv run alembic downgrade -1
 ```
 
-Docker ichida ishlaganda `uv run alembic` o'rniga `docker compose exec api alembic`
-dan foydalaning.
+В Docker используйте `docker compose exec api alembic` вместо `uv run alembic`.
 
-## Admin foydalanuvchi yaratish
+## Создание администратора
 
-Migratsiyalar qo'llangandan so'ng test admin yarating:
+После применения миграций создайте тестового администратора:
 
 ```bash
 uv run inv create-admin
 ```
 
-Buyruq `admin` username va `admin` paroli bilan foydalanuvchi yaratadi. Ishlab
-chiqarish muhitida bu ma'lumotlarni ishlatmang; kerak bo'lsa foydalanuvchini
-to'g'ridan-to'g'ri yarating:
+Команда создаст пользователя с именем `admin` и паролем `admin`. Не используйте
+эти данные в production; при необходимости создайте пользователя вручную:
 
 ```bash
 uv run python scripts/create_user.py admin \
   --username admin \
   --full-name "Admin User" \
   --password "kuchli-parol"
-```
-
-## API autentifikatsiyasi
-
-Login endpointi:
-
-```text
-POST /api/v1/auth/login/
-```
-
-Muvaffaqiyatli login JWT `access_token` qaytaradi. Himoyalangan endpointlarga
-so'rov yuborishda tokenni quyidagicha jo'nating:
-
-```text
-Authorization: Bearer <access_token>
-```
-
-Masalan, joriy foydalanuvchi profili:
-
-```text
-GET /api/v1/auth/profile/
 ```
