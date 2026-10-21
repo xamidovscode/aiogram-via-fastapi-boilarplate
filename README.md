@@ -19,6 +19,31 @@ cp .env.example .env
 
 Обязательно измените значение `SECRET_KEY`.
 
+Для запуска Telegram-бота укажите токен, полученный от BotFather:
+
+```dotenv
+BOT_TOKEN=your-telegram-bot-token
+```
+
+Выберите режим работы бота:
+
+```dotenv
+BOT_MODE=polling
+```
+
+Для webhook замените режим и укажите публичный HTTPS-адрес приложения:
+
+```dotenv
+BOT_MODE=webhook
+WEBHOOK_BASE_URL=https://example.com
+WEBHOOK_PATH=/telegram/webhook
+WEBHOOK_SECRET=telegram-webhook-secret
+```
+
+В режиме webhook Telegram отправляет обновления на
+`https://example.com/telegram/webhook`. В режиме polling этот путь возвращает
+`404`, а бот получает обновления напрямую от Telegram.
+
 Значение `DATABASE_URL` зависит от способа запуска:
 
 | Способ запуска | `DATABASE_URL` |
@@ -94,6 +119,19 @@ uv run inv run
 uv run inv worker
 uv run inv beat
 ```
+
+## Структура Telegram-бота
+
+```text
+app/bot/
+├── dispatcher.py
+├── runner.py
+└── handlers/
+    └── start.py
+```
+
+Бот запускается вместе с FastAPI. Новые обработчики добавляйте в
+`app/bot/handlers/`, затем подключайте их в `app/bot/handlers/__init__.py`.
 
 ## Миграции базы данных
 
